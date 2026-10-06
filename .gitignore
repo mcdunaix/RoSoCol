@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Obsidian workspace caches (preserve app.json and community plugin settings)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache/
+.obsidian/graph.json
+
+# Python and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Ray tracing raw outputs and large data artifacts
+raw_data/
+*.h5
+*.hdf5
+*.vtk
+*.csv.gz
+*.parquet
