@@ -3,5 +3,6 @@
   "livePreview": true,
   "showLineNumber": true,
   "useMarkdownLinks": true,
-  "attachmentFolderPath": "assets"
+  "attachmentFolderPath": "assets",
+  "readableLineLength": false
 }

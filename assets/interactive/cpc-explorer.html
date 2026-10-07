@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPC Geometric Profile & Ray-Trace Explorer</title>
+  <style>
+    :root {
+      --bg-primary: #121417;
+      --bg-card: #1b1f24;
+      --bg-input: #242930;
+      --border-color: #30363d;
+      --text-main: #e6edf3;
+      --text-muted: #8b949e;
+      --accent-blue: #58a6ff;
+      --accent-amber: #f0883e;
+      --accent-green: #3fb950;
+      --accent-red: #f85149;
+      --accent-cyan: #39c5cf;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      font-size: 13px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 860px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .control-val {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--bg-input);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(88, 166, 255, 0.4);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .metric-value {
+      font-size: 16px;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--accent-cyan);
+    }
+
+    .metric-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .canvas-container {
+      position: relative;
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 440px;
+    }
+
+    canvas {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .canvas-legend {
+      display: flex;
+      gap: 14px;
+      padding: 8px 12px;
+      background: rgba(22, 27, 34, 0.85);
+      border-top: 1px solid var(--border-color);
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    button {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    button:hover {
+      background: #2d333b;
+      border-color: var(--accent-blue);
+    }
+
+    .callout {
+      background: rgba(240, 136, 62, 0.08);
+      border-left: 3px solid var(--accent-amber);
+      padding: 8px 10px;
+      border-radius: 0 4px 4px 0;
+      font-size: 11px;
+      color: #e6edf3;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>RoSoCol CPC Profile & Ray Explorer <span class="badge">Winston Edge-Ray</span></h1>
+    <span style="font-size: 11px; color: var(--text-muted);">Solid of Revolution 2D Cross-Section</span>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar Controls & Readouts -->
+    <div class="panel">
+      <div class="panel-section-title">Design Dials</div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Acceptance Half-Angle (&theta;<sub>a</sub>)</span>
+          <span class="control-val" id="val-theta">35&deg;</span>
+        </div>
+        <input type="range" id="slider-theta" min="10" max="75" step="1" value="35">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Truncation Ratio (H / H<sub>max</sub>)</span>
+          <span class="control-val" id="val-trunc">0.60</span>
+        </div>
+        <input type="range" id="slider-trunc" min="0.15" max="1.0" step="0.05" value="0.60">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Absorber Radius (a')</span>
+          <span class="control-val" id="val-a-prime">10.0 mm</span>
+        </div>
+        <input type="range" id="slider-a-prime" min="2" max="50" step="1" value="10">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Refractive Index (n)</span>
+          <span class="control-val" id="val-n">1.00 (Hollow)</span>
+        </div>
+        <input type="range" id="slider-n" min="1.0" max="1.6" step="0.05" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Ray Incident Angle (&theta;<sub>in</sub>)</span>
+          <span class="control-val" id="val-ray-angle">25&deg;</span>
+        </div>
+        <input type="range" id="slider-ray-angle" min="0" max="60" step="1" value="25">
+      </div>
+
+      <div class="panel-section-title" style="margin-top: 6px;">Operational Metrics</div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">3D Concentration</span>
+          <span class="metric-value" id="m-c3d">2.41&times;</span>
+          <span class="metric-sub" id="m-c3d-ideal">Limit: 3.04&times;</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Aspect Ratio (H/D)</span>
+          <span class="metric-value" id="m-aspect">0.92</span>
+          <span class="metric-sub" id="m-aspect-full">Full: 1.84</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Total Height (H)</span>
+          <span class="metric-value" id="m-height">28.4 mm</span>
+          <span class="metric-sub" id="m-height-max">Max: 47.3 mm</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Top Aperture (D)</span>
+          <span class="metric-value" id="m-diam">31.0 mm</span>
+          <span class="metric-sub" id="m-diam-max">Max: 34.9 mm</span>
+        </div>
+      </div>
+
+      <div class="callout" id="callout-text">
+        <strong>Working Memory Takeaway:</strong> Truncating 40% height saves 40% material height while sacrificing only ~9% aperture diameter.
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-reset">Reset Defaults</button>
+        <button id="btn-toggle-rays">Toggle Rays (On)</button>
+      </div>
+    </div>
+
+    <!-- Canvas Visualization -->
+    <div class="canvas-container">
+      <canvas id="cpc-canvas"></canvas>
+      <div class="canvas-legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background: var(--accent-cyan);"></div>
+          <span>Truncated CPC Wall</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgba(139, 148, 158, 0.4); border: 1px dashed #8b949e;"></div>
+          <span>Untruncated Extension</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: var(--accent-amber);"></div>
+          <span>Absorber / Receiver</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: var(--accent-green);"></div>
+          <span>Accepted Ray</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: var(--accent-red);"></div>
+          <span>Rejected / Lost Ray</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    const state = {
+      theta_deg: 35,
+      truncation: 0.60,
+      a_prime: 10.0,
+      n: 1.0,
+      ray_angle_deg: 25,
+      show_rays: true
+    };
+
+    // DOM Elements
+    const sliderTheta = document.getElementById('slider-theta');
+    const sliderTrunc = document.getElementById('slider-trunc');
+    const sliderAPrime = document.getElementById('slider-a-prime');
+    const sliderN = document.getElementById('slider-n');
+    const sliderRayAngle = document.getElementById('slider-ray-angle');
+
+    const valTheta = document.getElementById('val-theta');
+    const valTrunc = document.getElementById('val-trunc');
+    const valAPrime = document.getElementById('val-a-prime');
+    const valN = document.getElementById('val-n');
+    const valRayAngle = document.getElementById('val-ray-angle');
+
+    const mC3D = document.getElementById('m-c3d');
+    const mC3DIdeal = document.getElementById('m-c3d-ideal');
+    const mAspect = document.getElementById('m-aspect');
+    const mAspectFull = document.getElementById('m-aspect-full');
+    const mHeight = document.getElementById('m-height');
+    const mHeightMax = document.getElementById('m-height-max');
+    const mDiam = document.getElementById('m-diam');
+    const mDiamMax = document.getElementById('m-diam-max');
+    const calloutText = document.getElementById('callout-text');
+
+    const btnReset = document.getElementById('btn-reset');
+    const btnToggleRays = document.getElementById('btn-toggle-rays');
+    const canvas = document.getElementById('cpc-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // CPC Analytical Equations (Winston Formulation)
+    function computeCPC(a_prime, theta_deg, truncation_ratio, n, num_points = 80) {
+      const theta = (theta_deg * Math.PI) / 180;
+      const sinT = Math.sin(theta);
+      const cosT = Math.cos(theta);
+
+      const c_2d_ideal = n / sinT;
+      const c_3d_ideal = Math.pow(n / sinT, 2);
+
+      const a_untruncated = (n * a_prime) / sinT;
+      const l_untruncated = (a_prime * (1 + sinT) * cosT) / (sinT * sinT);
+      const l_target = l_untruncated * truncation_ratio;
+
+      const psi_start = theta + Math.PI / 2;
+      const psi_end = 2 * theta;
+      const f_prime = a_prime * (1 + sinT);
+
+      const full_points = [];
+      const trunc_points = [];
+
+      for (let i = 0; i < num_points; i++) {
+        const t = i / (num_points - 1);
+        const psi = psi_start + t * (psi_end - psi_start);
+
+        const rho = (2 * f_prime) / (1 - Math.cos(psi));
+        const y = -a_prime + rho * Math.sin(psi - theta);
+        const z = rho * Math.cos(psi - theta);
+
+        full_points.push({ y, z });
+        if (z <= l_target) {
+          trunc_points.push({ y, z });
+        }
+      }
+
+      // Add exact intersection at l_target if truncated
+      if (trunc_points.length > 0 && trunc_points.length < full_points.length) {
+        const lastIn = trunc_points[trunc_points.length - 1];
+        const firstOut = full_points[trunc_points.length];
+        const dz = firstOut.z - lastIn.z;
+        if (dz > 1e-6) {
+          const frac = (l_target - lastIn.z) / dz;
+          const y_exact = lastIn.y + frac * (firstOut.y - lastIn.y);
+          trunc_points.push({ y: y_exact, z: l_target });
+        }
+      }
+
+      const activePoints = truncation_ratio >= 0.999 ? full_points : trunc_points;
+      const actual_a = activePoints[activePoints.length - 1].y;
+      const actual_l = activePoints[activePoints.length - 1].z;
+      const actual_c2d = actual_a / a_prime;
+      const actual_c3d = Math.pow(actual_a / a_prime, 2) * (n > 1 ? n * n : 1);
+
+      return {
+        a_prime,
+        theta_deg,
+        n,
+        truncation_ratio,
+        a_untruncated,
+        l_untruncated,
+        actual_a,
+        actual_l,
+        actual_c2d,
+        actual_c3d,
+        c_2d_ideal,
+        c_3d_ideal,
+        aspect_ratio: actual_l / (2 * actual_a),
+        aspect_ratio_full: l_untruncated / (2 * a_untruncated),
+        full_points,
+        trunc_points: activePoints
+      };
+    }
+
+    // Simple 2D Ray Tracing
+    function traceRay(originY, originZ, dirY, dirZ, cpc) {
+      // Ray: P(t) = origin + t * dir
+      // Trace steps downwards to receiver (z=0) or hitting walls
+      const path = [{ y: originY, z: originZ }];
+      let curY = originY;
+      let curZ = originZ;
+      let vy = dirY;
+      let vz = dirZ;
+      let bounces = 0;
+      let accepted = false;
+
+      const pts = cpc.trunc_points;
+
+      for (let step = 0; step < 8; step++) {
+        // Find intersection with receiver line segment z = 0, y in [-a', a']
+        if (vz < -1e-6) {
+          const tToReceiver = (0 - curZ) / vz;
+          const hitY = curY + tToReceiver * vy;
+          if (tToReceiver > 0 && Math.abs(hitY) <= cpc.a_prime + 0.1) {
+            path.push({ y: hitY, z: 0 });
+            accepted = true;
+            break;
+          }
+        }
+
+        // Find intersection with left or right CPC wall
+        let hit = null;
+        let minT = Infinity;
+        let hitNormal = null;
+
+        // Check right wall: (y, z) and left wall: (-y, z)
+        for (let side of [1, -1]) {
+          for (let i = 0; i < pts.length - 1; i++) {
+            const p1 = { y: side * pts[i].y, z: pts[i].z };
+            const p2 = { y: side * pts[i + 1].y, z: pts[i + 1].z };
+
+            // Segment intersection between ray (cur, cur+v) and (p1, p2)
+            const segDy = p2.y - p1.y;
+            const segDz = p2.z - p1.z;
+            const denom = vy * segDz - vz * segDy;
+            if (Math.abs(denom) < 1e-9) continue;
+
+            const t = ((p1.y - curY) * segDz - (p1.z - curZ) * segDy) / denom;
+            const u = ((p1.y - curY) * vz - (p1.z - curZ) * vy) / denom;
+
+            if (t > 0.05 && u >= 0 && u <= 1 && t < minT) {
+              minT = t;
+              hit = { y: curY + t * vy, z: curZ + t * vz };
+              // Normal pointing inward
+              let nx = -segDz;
+              let ny = segDy;
+              const len = Math.hypot(nx, ny);
+              nx /= len;
+              ny /= len;
+              // Ensure normal points towards inside of collector (toward y=0)
+              if (side === 1 && nx > 0) { nx = -nx; ny = -ny; }
+              if (side === -1 && nx < 0) { nx = -nx; ny = -ny; }
+              hitNormal = { ny: nx, nz: ny };
+            }
+          }
+        }
+
+        if (hit && minT < 200) {
+          path.push(hit);
+          curY = hit.y;
+          curZ = hit.z;
+          bounces++;
+
+          // Reflect vector v across hitNormal
+          const dot = vy * hitNormal.ny + vz * hitNormal.nz;
+          vy = vy - 2 * dot * hitNormal.ny;
+          vz = vz - 2 * dot * hitNormal.nz;
+
+          // If ray escapes upwards through aperture
+          if (curZ >= cpc.actual_l && vz > 0) {
+            path.push({ y: curY + 20 * vy, z: curZ + 20 * vz });
+            break;
+          }
+        } else {
+          // No hit, rays exits bottom outside receiver or exits top
+          if (vz < 0) {
+            const tBottom = -curZ / vz;
+            path.push({ y: curY + tBottom * vy, z: 0 });
+          } else {
+            path.push({ y: curY + 30 * vy, z: curZ + 30 * vz });
+          }
+          break;
+        }
+      }
+
+      return { path, accepted, bounces };
+    }
+
+    // Render Canvas
+    function render() {
+      const cpc = computeCPC(state.a_prime, state.theta_deg, state.truncation, state.n);
+
+      // Update metric displays
+      mC3D.textContent = `${cpc.actual_c3d.toFixed(2)}×`;
+      mC3DIdeal.textContent = `Limit: ${cpc.c_3d_ideal.toFixed(2)}×`;
+      mAspect.textContent = `${cpc.aspect_ratio.toFixed(2)}`;
+      mAspectFull.textContent = `Full: ${cpc.aspect_ratio_full.toFixed(2)}`;
+      mHeight.textContent = `${cpc.actual_l.toFixed(1)} mm`;
+      mHeightMax.textContent = `Max: ${cpc.l_untruncated.toFixed(1)} mm`;
+      mDiam.textContent = `${(2 * cpc.actual_a).toFixed(1)} mm`;
+      mDiamMax.textContent = `Max: ${(2 * cpc.a_untruncated).toFixed(1)} mm`;
+
+      const truncPct = Math.round((1 - state.truncation) * 100);
+      const diamLossPct = Math.round((1 - cpc.actual_a / cpc.a_untruncated) * 100);
+      const concLossPct = Math.round((1 - cpc.actual_c3d / cpc.c_3d_ideal) * 100);
+
+      if (truncPct > 0) {
+        calloutText.innerHTML = `<strong>CEO Takeaway:</strong> Truncating <strong>${truncPct}%</strong> height drops aperture diameter by only <strong>${diamLossPct}%</strong> (${concLossPct}% concentration penalty), reducing wind sail area and material cost by <strong>${truncPct}%</strong>.`;
+      } else {
+        calloutText.innerHTML = `<strong>CEO Takeaway:</strong> Full untruncated CPC achieves theoretical concentration limit (${cpc.c_3d_ideal.toFixed(2)}×) but incurs extreme height penalty (Aspect Ratio: ${cpc.aspect_ratio.toFixed(2)}).`;
+      }
+
+      // Resize canvas for sharp retina display
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Coordinate Transform
+      // z is height (0 to cpc.l_untruncated), y is transverse (-cpc.a_untruncated to cpc.a_untruncated)
+      const maxDimZ = Math.max(cpc.l_untruncated * 1.15, 20);
+      const maxDimY = Math.max(cpc.a_untruncated * 2.4, 20);
+      const scale = Math.min((w * 0.8) / maxDimY, (h * 0.75) / maxDimZ);
+
+      const originX = w / 2;
+      const originYCanvas = h * 0.88; // Z=0 line near bottom
+
+      function toScreen(y, z) {
+        return {
+          x: originX + y * scale,
+          y: originYCanvas - z * scale
+        };
+      }
+
+      // Draw Grid / Optical Axis
+      ctx.strokeStyle = "rgba(48, 54, 61, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+
+      // Optical axis
+      ctx.beginPath();
+      ctx.moveTo(originX, 15);
+      ctx.lineTo(originX, h - 15);
+      ctx.stroke();
+
+      // Receiver baseline
+      ctx.beginPath();
+      ctx.moveTo(30, originYCanvas);
+      ctx.lineTo(w - 30, originYCanvas);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw Untruncated Envelope (Ghosted)
+      if (state.truncation < 0.99) {
+        ctx.strokeStyle = "rgba(139, 148, 158, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+
+        // Right side
+        ctx.beginPath();
+        let pt0 = toScreen(cpc.full_points[0].y, cpc.full_points[0].z);
+        ctx.moveTo(pt0.x, pt0.y);
+        for (let p of cpc.full_points) {
+          const s = toScreen(p.y, p.z);
+          ctx.lineTo(s.x, s.y);
+        }
+        ctx.stroke();
+
+        // Left side
+        ctx.beginPath();
+        pt0 = toScreen(-cpc.full_points[0].y, cpc.full_points[0].z);
+        ctx.moveTo(pt0.x, pt0.y);
+        for (let p of cpc.full_points) {
+          const s = toScreen(-p.y, p.z);
+          ctx.lineTo(s.x, s.y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Draw Active Truncated Profile Walls
+      ctx.strokeStyle = "#39c5cf";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      // Right wall
+      let startR = toScreen(cpc.trunc_points[0].y, cpc.trunc_points[0].z);
+      ctx.moveTo(startR.x, startR.y);
+      for (let p of cpc.trunc_points) {
+        const s = toScreen(p.y, p.z);
+        ctx.lineTo(s.x, s.y);
+      }
+      ctx.stroke();
+
+      // Left wall
+      ctx.beginPath();
+      let startL = toScreen(-cpc.trunc_points[0].y, cpc.trunc_points[0].z);
+      ctx.moveTo(startL.x, startL.y);
+      for (let p of cpc.trunc_points) {
+        const s = toScreen(-p.y, p.z);
+        ctx.lineTo(s.x, s.y);
+      }
+      ctx.stroke();
+
+      // Draw Top Aperture Opening Line
+      const topR = toScreen(cpc.actual_a, cpc.actual_l);
+      const topL = toScreen(-cpc.actual_a, cpc.actual_l);
+      ctx.strokeStyle = "rgba(88, 166, 255, 0.4)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(topL.x, topL.y);
+      ctx.lineTo(topR.x, topR.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw Absorber / Receiver (Bottom, amber)
+      const absR = toScreen(cpc.a_prime, 0);
+      const absL = toScreen(-cpc.a_prime, 0);
+      ctx.strokeStyle = "#f0883e";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(absL.x, absL.y);
+      ctx.lineTo(absR.x, absR.y);
+      ctx.stroke();
+
+      // Receiver label
+      ctx.fillStyle = "#f0883e";
+      ctx.font = "10px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(`Receiver (2a' = ${(2 * cpc.a_prime).toFixed(0)}mm)`, originX, originYCanvas + 18);
+
+      // Rays Tracing
+      if (state.show_rays) {
+        const rayAngleRad = (state.ray_angle_deg * Math.PI) / 180;
+        const dirY = Math.sin(rayAngleRad);
+        const dirZ = -Math.cos(rayAngleRad);
+
+        const numRays = 7;
+        const apertureSpan = 2 * cpc.actual_a * 0.92;
+        const raySpacing = apertureSpan / (numRays - 1);
+
+        for (let r = 0; r < numRays; r++) {
+          const startY = -apertureSpan / 2 + r * raySpacing;
+          const startZ = cpc.actual_l + 12; // Start above aperture
+
+          const trace = traceRay(startY, startZ, dirY, dirZ, cpc);
+
+          ctx.strokeStyle = trace.accepted ? "rgba(63, 185, 80, 0.85)" : "rgba(248, 81, 73, 0.75)";
+          ctx.lineWidth = trace.accepted ? 1.8 : 1.2;
+
+          ctx.beginPath();
+          const pStart = toScreen(trace.path[0].y, trace.path[0].z);
+          ctx.moveTo(pStart.x, pStart.y);
+          for (let i = 1; i < trace.path.length; i++) {
+            const pNext = toScreen(trace.path[i].y, trace.path[i].z);
+            ctx.lineTo(pNext.x, pNext.y);
+          }
+          ctx.stroke();
+
+          // Arrow marker along first segment
+          if (trace.path.length > 1) {
+            const pNext = toScreen(trace.path[1].y, trace.path[1].z);
+            const midX = (pStart.x + pNext.x) / 2;
+            const midY = (pStart.y + pNext.y) / 2;
+            ctx.fillStyle = trace.accepted ? "#3fb950" : "#f85149";
+            ctx.beginPath();
+            ctx.arc(midX, midY, 2, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    // Event Listeners
+    sliderTheta.addEventListener('input', (e) => {
+      state.theta_deg = parseFloat(e.target.value);
+      valTheta.textContent = `${state.theta_deg}°`;
+      render();
+    });
+
+    sliderTrunc.addEventListener('input', (e) => {
+      state.truncation = parseFloat(e.target.value);
+      valTrunc.textContent = state.truncation.toFixed(2);
+      render();
+    });
+
+    sliderAPrime.addEventListener('input', (e) => {
+      state.a_prime = parseFloat(e.target.value);
+      valAPrime.textContent = `${state.a_prime.toFixed(1)} mm`;
+      render();
+    });
+
+    sliderN.addEventListener('input', (e) => {
+      state.n = parseFloat(e.target.value);
+      valN.textContent = state.n === 1.0 ? "1.00 (Hollow)" : `${state.n.toFixed(2)} (Dielectric)`;
+      render();
+    });
+
+    sliderRayAngle.addEventListener('input', (e) => {
+      state.ray_angle_deg = parseFloat(e.target.value);
+      valRayAngle.textContent = `${state.ray_angle_deg}°`;
+      render();
+    });
+
+    btnReset.addEventListener('click', () => {
+      state.theta_deg = 35;
+      state.truncation = 0.60;
+      state.a_prime = 10.0;
+      state.n = 1.0;
+      state.ray_angle_deg = 25;
+      state.show_rays = true;
+
+      sliderTheta.value = 35;
+      sliderTrunc.value = 0.60;
+      sliderAPrime.value = 10;
+      sliderN.value = 1.0;
+      sliderRayAngle.value = 25;
+
+      valTheta.textContent = "35°";
+      valTrunc.textContent = "0.60";
+      valAPrime.textContent = "10.0 mm";
+      valN.textContent = "1.00 (Hollow)";
+      valRayAngle.textContent = "25°";
+      btnToggleRays.textContent = "Toggle Rays (On)";
+
+      render();
+    });
+
+    btnToggleRays.addEventListener('click', () => {
+      state.show_rays = !state.show_rays;
+      btnToggleRays.textContent = state.show_rays ? "Toggle Rays (On)" : "Toggle Rays (Off)";
+      render();
+    });
+
+    window.addEventListener('resize', render);
+    // Initial Render
+    render();
+  </script>
+</body>
+</html>
